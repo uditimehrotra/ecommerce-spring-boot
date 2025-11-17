@@ -1,5 +1,4 @@
 package com.ecommerce.platform.model;
-
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
