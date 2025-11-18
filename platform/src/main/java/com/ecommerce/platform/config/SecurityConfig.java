@@ -15,59 +15,45 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@Configuration // Marks this class as a source of bean definitions for the application context.
-@EnableWebSecurity // This is the main switch that enables web security in our Spring Boot app.
+@Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
-    /**
-     * Defines how to find a user. We tell Spring Security to use our UserRepository
-     * and its findByUsername method.
-     */
+    private final JwtAuthFilter jwtAuthFilter; // Inject our new filter
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
+
     @Bean
     public UserDetailsService userDetailsService(UserRepository userRepository) {
         return username -> userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
     }
 
-    /**
-     * Defines the password hashing algorithm. We must store passwords hashed, never in plain text.
-     * BCrypt is the industry-standard algorithm.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * This bean defines the main security rules for our application.
-     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
         http
-            // 1. Disable CSRF (Cross-Site Request Forgery)
-            // We can do this because we are using stateless JWTs, not browser cookies for sessions.
             .csrf(csrf -> csrf.disable())
-
-            // 2. Define authorization rules
             .authorizeHttpRequests(auth -> auth
-                // Allow all requests to our authentication endpoints (login/register)
                 .requestMatchers("/api/auth/**").permitAll() 
-                // Any other request must be authenticated (i.e., requires a valid token)
                 .anyRequest().authenticated()
             )
-
-            // 3. Configure session management to be STATELESS
-            // This tells Spring Security not to create or use HTTP sessions.
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider)
+            // Add our JWT filter BEFORE the standard UsernamePasswordAuthenticationFilter
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * The AuthenticationProvider is the component that uses the UserDetailsService
-     * and PasswordEncoder to verify a user's credentials during login.
-     */
     @Bean
     public AuthenticationProvider authenticationProvider(UserRepository userRepository) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -76,10 +62,6 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    /**
-     * The AuthenticationManager is the core component that processes an authentication request.
-     * We'll need this later in our login API.
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
