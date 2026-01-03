@@ -16,8 +16,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component // Marks this as a Spring component so it can be injected elsewhere
-public class JwtAuthFilter extends OncePerRequestFilter { 
+public class JwtAuthFilter extends OncePerRequestFilter { // Not a component; will be declared as a bean in SecurityConfig to avoid circular dependency
+
     //By extending OncePerRequestFilter, you guarantee that this logic runs exactly one time for every single HTTP request.
 
     private final JwtService jwtService;

@@ -16,11 +16,11 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
+private static final String SECRET_KEY = "ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0ZTM0";
 
     // !!! IMPORTANT: This secret key should be stored securely and not hardcoded.
     // We are hardcoding it here only for development.
     // This key must be at least 256 bits (32 bytes) long for the HS256 algorithm.
-    private static final String SECRET_KEY = "a-very-long-and-super-secure-secret-key-for-my-ecommerce-project-12345";
 
     /**
      * Extracts the username from the JWT token.
@@ -79,7 +79,7 @@ public class JwtService {
      * This method parses the token using the secret key to extract all its information.
      */
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
+        return Jwts.parser()
                 .setSigningKey(getSignInKey())
                 .build()
                 .parseClaimsJws(token)
@@ -89,8 +89,12 @@ public class JwtService {
     /**
      * Decodes the Base64-encoded secret key into a proper Key object.
      */
-    private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
+   // This is a Base64 encoded string representing a 256-bit key
+
+private Key getSignInKey() {
+    // Decodes the Base64 key into bytes
+    byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+    // Returns a HMAC SHA key specifically for HS256 algorithm
+    return Keys.hmacShaKeyFor(keyBytes);
+}
 }
