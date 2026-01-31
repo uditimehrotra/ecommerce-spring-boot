@@ -43,11 +43,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider, JwtAuthFilter jwtAuthFilter) throws Exception {
         http
+            .cors(cors -> cors.configure(http))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() 
-                .anyRequest().authenticated()
-            )
+            .requestMatchers("/api/auth/**").permitAll()     // Register/Login are open
+            .requestMatchers("/api/products/**").permitAll() // Browsing is open
+            .requestMatchers("/api/cart/**").authenticated() // Cart requires a login
+            .anyRequest().authenticated() // This locks /api/cart automatically!
+)
+
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider)
             // Add our JWT filter BEFORE the standard UsernamePasswordAuthenticationFilter
