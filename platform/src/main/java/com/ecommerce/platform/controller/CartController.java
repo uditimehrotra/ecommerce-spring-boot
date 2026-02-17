@@ -1,5 +1,5 @@
 package com.ecommerce.platform.controller;
-
+import com.ecommerce.platform.dto.CartResponseDTO;
 import com.ecommerce.platform.dto.CartItemDTO;
 import com.ecommerce.platform.model.CartItem;
 import com.ecommerce.platform.service.CartService;
@@ -20,11 +20,10 @@ public class CartController {
     }
 
     // GET /api/cart - View your personal cart
-    @GetMapping
-    public ResponseEntity<List<CartItemDTO>> getCart(Authentication authentication) {
-    return ResponseEntity.ok(cartService.getCartItems(authentication.getName()));
+  @GetMapping
+    public ResponseEntity<CartResponseDTO> getCart(Authentication authentication) {
+        return ResponseEntity.ok(cartService.getCart(authentication.getName()));
     }
-
     // POST /api/cart/add/{productId}
     @PostMapping("/add/{productId}")
     public ResponseEntity<CartItemDTO> addToCart(
@@ -39,6 +38,7 @@ public class CartController {
     // DELETE /api/cart/{cartItemId}
     @DeleteMapping("/{cartItemId}")
     public ResponseEntity<Void> removeFromCart(@PathVariable Long cartItemId, Authentication authentication) {
+        // We pass the username to ensure users can only delete THEIR OWN items
         cartService.removeFromCart(cartItemId, authentication.getName());
         return ResponseEntity.noContent().build();
     }

@@ -1,6 +1,7 @@
 package com.ecommerce.platform.service;
 
 import com.ecommerce.platform.dto.CartItemDTO; // Import your new DTO
+import com.ecommerce.platform.dto.CartResponseDTO;
 import com.ecommerce.platform.model.User;
 import com.ecommerce.platform.model.CartItem;
 import com.ecommerce.platform.model.Product;
@@ -50,15 +51,35 @@ public class CartService {
     }
 
     // 2. Change return type to List<CartItemDTO>
-    public List<CartItemDTO> getCartItems(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    // public List<CartItemDTO> getCartItems(String username) {
+    //     User user = userRepository.findByUsername(username)
+    //             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        return cartRepository.findByUser(user)
-                .stream()
-                .map(this::convertToDTO) // Convert each item in the list
-                .collect(Collectors.toList());
-    }
+    //     return cartRepository.findByUser(user)
+    //             .stream()
+    //             .map(this::convertToDTO) // Convert each item in the list
+    //             .collect(Collectors.toList());
+    // }
+
+    public CartResponseDTO getCart(String username) {
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    List<CartItemDTO> items = cartRepository.findByUser(user).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+
+    // Calculate the total of all subtotals
+    Double grandTotal = items.stream()
+            .mapToDouble(CartItemDTO::getSubtotal)
+            .sum();
+
+    CartResponseDTO response = new CartResponseDTO();
+    response.setItems(items);
+    response.setGrandTotal(grandTotal);
+    
+    return response;
+}
 
     public void removeFromCart(Long cartItemId, String username) {
         CartItem item = cartRepository.findById(cartItemId)
