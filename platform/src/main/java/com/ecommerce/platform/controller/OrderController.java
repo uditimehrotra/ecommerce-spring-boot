@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ecommerce.platform.dto.OrderResponseDTO;
+import com.ecommerce.platform.dto.OrderItemDTO;
+
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
@@ -19,9 +22,8 @@ public class OrderController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<Order> checkout(Authentication authentication) {
-        // authentication.getName() gets the username from your JWT
-        Order order = orderService.checkout(authentication.getName());
-        return ResponseEntity.ok(order);
-    }
+public ResponseEntity<OrderResponseDTO> checkout(Authentication authentication) {
+    OrderResponseDTO response = orderService.checkout(authentication.getName());
+    return ResponseEntity.ok(response);
+}
 }
