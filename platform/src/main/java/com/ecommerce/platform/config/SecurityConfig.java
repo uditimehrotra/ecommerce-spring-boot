@@ -48,6 +48,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()     // Register/Login are open
             .requestMatchers("/api/products/**").permitAll() // Browsing is open
+            .requestMatchers("/api/ai/**").permitAll()       // AI endpoints are open
             .requestMatchers("/api/cart/**").authenticated() // Cart requires a login
             .anyRequest().authenticated() // This locks /api/cart automatically!
 )
