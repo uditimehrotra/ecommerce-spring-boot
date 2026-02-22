@@ -8,16 +8,14 @@ public class GenAIService {
 
     private final ChatClient chatClient;
 
+    // The ChatClient.Builder is automatically configured by Spring Boot
     public GenAIService(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder.build();
     }
 
     public String generateDescription(String productName) {
-        String prompt = "You are a marketing expert for an e-commerce store. " +
-                        "Write a 2-sentence catchy and professional description for a product named: " + productName;
-        
         return chatClient.prompt()
-                .user(prompt)
+                .user("Write a 2-sentence professional e-commerce description for: " + productName)
                 .call()
                 .content();
     }
