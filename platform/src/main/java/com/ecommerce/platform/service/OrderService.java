@@ -31,63 +31,59 @@ public class OrderService {
         this.productRepository = productRepository;
     }
 
-    @Transactional
+   @Transactional
 public OrderResponseDTO checkout(String username) {
     User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
     List<CartItem> cartItems = cartRepository.findByUser(user);
     if (cartItems.isEmpty()) {
-        throw new RuntimeException("Cannot checkout an empty cart");
+        throw new RuntimeException("Cart is empty");
     }
 
-    // --- STEP 1: STOCK VERIFICATION ---
-    for (CartItem item : cartItems) {
-        Product product = item.getProduct();
-        if (product.getStockQuantity() < item.getQuantity()) {
-            throw new RuntimeException("Insufficient stock for product: " + product.getName() + 
-                                       ". Available: " + product.getStockQuantity());
-        }
-    }
-
-    // --- STEP 2: CREATE ORDER ---
+    // 1. Create the Order Parent
     Order order = new Order();
     order.setUser(user);
     order.setOrderDate(LocalDateTime.now());
     order.setStatus("COMPLETED");
-
+    
+    // Calculate total
     double total = cartItems.stream()
             .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity())
             .sum();
     order.setTotalAmount(total);
+
+    // 2. Save the Order FIRST to get an ID
     Order savedOrder = orderRepository.save(order);
 
-    // --- STEP 3: CONVERT ITEMS & SUBTRACT STOCK ---
-    List<OrderItem> orderItems = new ArrayList<>();
+    // 3. Create and Link Items
+    List<OrderItem> orderItemsList = new ArrayList<>();
     for (CartItem cartItem : cartItems) {
         Product product = cartItem.getProduct();
         
-        // Subtract stock and save product update
+        // Subtract stock
         product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-        productRepository.save(product); 
+        productRepository.save(product);
 
         OrderItem orderItem = new OrderItem();
-        orderItem.setOrder(savedOrder);
+        orderItem.setOrder(savedOrder); // Link Item -> Order
         orderItem.setProduct(product);
         orderItem.setQuantity(cartItem.getQuantity());
         orderItem.setPriceAtPurchase(product.getPrice());
         
-        orderItems.add(orderItem);
+        orderItemsList.add(orderItem);
     }
 
-    // Save the order items explicitly
-    orderItemRepository.saveAll(orderItems);
+    // 4. CRITICAL: Link Order -> Items (This is what fixes the empty list!)
+    savedOrder.setOrderItems(orderItemsList);
 
-    // --- STEP 4: CLEAR THE CART (CRITICAL) ---
-    cartRepository.deleteAll(cartItems); 
+    // 5. Save all items
+    orderItemRepository.saveAll(orderItemsList);
 
-    // --- STEP 5: RETURN CLEAN RECEIPT ---
-    return convertToOrderDTO(savedOrder, orderItems);
+    // 6. Clear Cart
+    cartRepository.deleteAll(cartItems);
+
+    return convertToOrderDTO(savedOrder, orderItemsList);
 }
 private OrderResponseDTO convertToOrderDTO(Order order, List<OrderItem> items) {
         OrderResponseDTO dto = new OrderResponseDTO();
@@ -108,4 +104,16 @@ private OrderResponseDTO convertToOrderDTO(Order order, List<OrderItem> items) {
         dto.setItems(itemDTOs);
         return dto;
     }
+
+   public List<OrderResponseDTO> getOrderHistory(String username) {
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    // Use the new method we just created!
+    List<Order> orders = orderRepository.findByUserWithItems(user);
+
+    return orders.stream()
+            .map(order -> convertToOrderDTO(order, order.getOrderItems()))
+            .toList();
+}
 }
